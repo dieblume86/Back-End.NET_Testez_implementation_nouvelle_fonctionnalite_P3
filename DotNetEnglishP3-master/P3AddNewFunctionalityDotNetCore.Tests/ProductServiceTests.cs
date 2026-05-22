@@ -9,6 +9,7 @@ using P3AddNewFunctionalityDotNetCore.Models.Services;
 using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Xunit;
 
 namespace P3AddNewFunctionalityDotNetCore.Tests
@@ -27,47 +28,25 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         private void ProductViewModel_Name_IsNotValid_Empty()
         {
             // Arrange
-            var product = new ProductViewModel
-            {
-                Id = 1,
-                Name = "",
-                Price = "9.99",
-                Stock = "10"
-            };
-
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
-            var isValid = false;
+            var product = new ProductViewModel { Name = "" };
 
             // Act
-            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+            var nameErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Name));
 
             // Assert
-            Assert.False(isValid, "ProductViewModel should be invalid beacause Name is empty");
-            Assert.NotEmpty(results);
-            Assert.Equal("MissingName", results[0].ErrorMessage);
+            Assert.NotEmpty(nameErrors);
+            Assert.Equal("MissingName", nameErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Name_IsValid()
         {
             // Arrange
-            var product = new ProductViewModel
-            {
-                Id = 1,
-                Name = "ProduitTest",
-                Price = "9.99",
-                Stock = "10"
-            };
-
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
-            var isValid = false;
+            var product = new ProductViewModel { Name = "ProduitTest" };
 
             // Act
-            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+            var nameErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Name));
 
             // Assert
-            Assert.True(isValid, "ProductViewModel Name should be valid");
-            Assert.Empty(results);
+            Assert.Empty(nameErrors);
         }
 
         /// <summary>
@@ -84,93 +63,147 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         private void ProductViewModel_Price_IsNotValid_Empty()
         {
             // Arrange
-            var product = new ProductViewModel
-            {
-                Id = 1,
-                Name = "ProduitTest",
-                Price = "",
-                Stock = "10"
-            };
-
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
-            var isValid = false;
+            var product = new ProductViewModel { Price = "" };
 
             // Act
-            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
-            Assert.False(isValid, "ProductViewModel should be invalid beacause Price is empty");
-            Assert.NotEmpty(results);
-            Assert.Equal("MissingPrice", results[0].ErrorMessage);
+            Assert.NotEmpty(priceErrors);
+            Assert.Equal("MissingPrice", priceErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Price_IsNotValid_NotDecimal()
         {
             // Arrange
-            var product = new ProductViewModel
-            {
-                Id = 1,
-                Name = "ProduitTest",
-                Price = "Test",
-                Stock = "10"
-            };
-
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
-            var isValid = false;
+            var product = new ProductViewModel { Price = "Test" };
 
             // Act
-            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
-            Assert.False(isValid, "ProductViewModel should be invalid beacause Price is not a decimal");
-            Assert.NotEmpty(results);
-            Assert.Equal("PriceNotANumber", results[0].ErrorMessage);
+            Assert.NotEmpty(priceErrors);
+            Assert.Equal("PriceNotANumber", priceErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Price_IsNotValid_NotGreaterThanZero()
         {
             // Arrange
-            var product = new ProductViewModel
-            {
-                Id = 1,
-                Name = "ProduitTest",
-                Price = "-9.99",
-                Stock = "10"
-            };
-
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
-            var isValid = false;
+            var product = new ProductViewModel { Price = "-9.99" };
 
             // Act
-            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
-            Assert.False(isValid, "ProductViewModel should be invalid beacause Price is not greater than 0");
-            Assert.NotEmpty(results);
-            Assert.Equal("PriceNotGreaterThanZero", results[0].ErrorMessage);
+            Assert.NotEmpty(priceErrors);
+            Assert.Equal("PriceNotGreaterThanZero", priceErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Price_IsValid()
         {
             // Arrange
-            var product = new ProductViewModel
-            {
-                Id = 1,
-                Name = "ProduitTest",
-                Price = "9.99",
-                Stock = "10"
-            };
-
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
-            var isValid = false;
+            var product = new ProductViewModel { Price = "9.99" };
 
             // Act
-            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
-            Assert.True(isValid, "ProductViewModel Price should be valid");
-            Assert.Empty(results);
+            Assert.Empty(priceErrors);
+        }
+
+        /// <summary>
+        /// Check all cases for the validation of the Stock property of the ProductViewModel, which is required, must be an integer and greater than zero.
+        /// </summary>
+        [Fact]
+        public void ProductViewModel_Stock_Valid_AllCases()
+        {
+            ProductViewModel_Stock_IsNotValid_Empty();
+            ProductViewModel_Stock_IsNotValid_NotInteger_BecauseString();
+            ProductViewModel_Stock_IsNotValid_NotInteger_BecauseDecimal();
+            ProductViewModel_Stock_IsNotValid_NotGreaterThanZero();
+            ProductViewModel_Stock_IsValid();
+        }
+        private void ProductViewModel_Stock_IsNotValid_Empty()
+        {
+            // Arrange
+            var product = new ProductViewModel { Stock = "" };
+
+            // Act
+            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+
+            // Assert
+            Assert.NotEmpty(stockErrors);
+            Assert.Equal("MissingQuantity", stockErrors[0].ErrorMessage);
+        }
+        private void ProductViewModel_Stock_IsNotValid_NotInteger_BecauseString()
+        {
+            // Arrange
+            var product = new ProductViewModel { Stock = "Test" };
+
+            // Act
+            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+
+            // Assert
+            Assert.NotEmpty(stockErrors);
+            Assert.Equal("StockNotAnInteger", stockErrors[0].ErrorMessage);
+        }
+        private void ProductViewModel_Stock_IsNotValid_NotInteger_BecauseDecimal()
+        {
+            // Arrange
+            var product = new ProductViewModel { Stock = "9.99" };
+
+            // Act
+            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+
+            // Assert
+            Assert.NotEmpty(stockErrors);
+            Assert.Equal("StockNotAnInteger", stockErrors[0].ErrorMessage);
+        }
+        private void ProductViewModel_Stock_IsNotValid_NotGreaterThanZero()
+        {
+            // Arrange
+            var product = new ProductViewModel { Stock = "-10" };
+
+            // Act
+            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+
+            // Assert
+            Assert.NotEmpty(stockErrors);
+            Assert.Equal("StockNotGreaterThanZero", stockErrors[0].ErrorMessage);
+        }
+        private void ProductViewModel_Stock_IsValid()
+        {
+            // Arrange
+            var product = new ProductViewModel { Stock = "10" };
+
+            // Act
+            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+
+            // Assert
+            Assert.Empty(stockErrors);
+        }
+
+
+        /// <summary>
+        /// Get all validation errors for a specific property of the ProductViewModel, including both data annotations and custom validation logic.
+        /// </summary>
+        /// <param name="product">The product view model to validate.</param>
+        /// <param name="targetProperty">The name of the property to get validation errors for.</param>
+        /// <returns>A list of validation results for the specified property.</returns>
+        private List<ValidationResult> GetAllPropertiesErrors(ProductViewModel product, string targetProperty)
+        {
+            var context = new ValidationContext(product);
+            var results = new List<ValidationResult>();
+
+            Validator.TryValidateObject(product, context, results);
+
+            var customResults = product.Validate(context).ToList();
+
+            foreach (var customResult in customResults)
+            {
+                results.Add(customResult);
+            }
+
+            var targetErrors = results.Where(r => r.MemberNames != null && r.MemberNames.Contains(targetProperty)).ToList();
+
+            return targetErrors;
         }
     }
 }

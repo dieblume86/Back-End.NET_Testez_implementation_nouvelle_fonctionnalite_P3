@@ -23,6 +23,7 @@ namespace P3AddNewFunctionalityDotNetCore.Models.ViewModels
         [Required(ErrorMessage = "MissingPrice")]
         public string Price { get; set; }
 
+
         /// <summary>
         /// Validate if Price is a number and greater than zero, and if Stock is an integer and greater than zero.
         /// </summary>
