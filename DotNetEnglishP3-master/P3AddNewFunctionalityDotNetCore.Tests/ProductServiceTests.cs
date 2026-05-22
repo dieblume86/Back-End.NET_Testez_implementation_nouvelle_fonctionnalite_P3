@@ -16,23 +16,63 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
     public class ProductServiceTests
     {
         /// <summary>
-        /// Take this test method as a template to write your test method.
-        /// A test method must check if a definite method does its job:
-        /// returns an expected value from a particular set of parameters
+        /// Check all cases for the validation of the Name property of the ProductViewModel, which is required and cannot be empty.
         /// </summary>
         [Fact]
-        public void ExampleMethod()
+        public void ProductViewModel_Name_Valid_AllCases()
+        {
+            ProductViewModel_Name_IsNotValid_Empty();
+            ProductViewModel_Name_IsValid();
+        }
+        private void ProductViewModel_Name_IsNotValid_Empty()
         {
             // Arrange
+            var product = new ProductViewModel
+            {
+                Id = 1,
+                Name = "",
+                Price = "9.99",
+                Stock = "10"
+            };
+
+            var context = new ValidationContext(product);
+            var results = new List<ValidationResult>();
+            var isValid = false;
 
             // Act
-
+            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
 
             // Assert
-            Assert.Equal(1, 1);
+            Assert.False(isValid, "ProductViewModel should be invalid beacause Name is empty");
+            Assert.NotEmpty(results);
+            Assert.Equal("MissingName", results[0].ErrorMessage);
+        }
+        private void ProductViewModel_Name_IsValid()
+        {
+            // Arrange
+            var product = new ProductViewModel
+            {
+                Id = 1,
+                Name = "ProduitTest",
+                Price = "9.99",
+                Stock = "10"
+            };
+
+            var context = new ValidationContext(product);
+            var results = new List<ValidationResult>();
+            var isValid = false;
+
+            // Act
+            isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
+
+            // Assert
+            Assert.True(isValid, "ProductViewModel Name should be valid");
+            Assert.Empty(results);
         }
 
-        // TODO write test methods to ensure a correct coverage of all possibilities
+        /// <summary>
+        /// Check all cases for the validation of the Price property of the ProductViewModel, which is required, must be a number and greater than zero.
+        /// </summary>
         [Fact]
         public void ProductViewModel_Price_Valid_AllCases()
         {
@@ -48,8 +88,6 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             {
                 Id = 1,
                 Name = "ProduitTest",
-                Description = "Desc",
-                Details = "Details",
                 Price = "",
                 Stock = "10"
             };
@@ -73,8 +111,6 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             {
                 Id = 1,
                 Name = "ProduitTest",
-                Description = "Desc",
-                Details = "Details",
                 Price = "Test",
                 Stock = "10"
             };
@@ -98,8 +134,6 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             {
                 Id = 1,
                 Name = "ProduitTest",
-                Description = "Desc",
-                Details = "Details",
                 Price = "-9.99",
                 Stock = "10"
             };
@@ -123,8 +157,6 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             {
                 Id = 1,
                 Name = "ProduitTest",
-                Description = "Desc",
-                Details = "Details",
                 Price = "9.99",
                 Stock = "10"
             };
@@ -137,40 +169,8 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             isValid = Validator.TryValidateObject(product, context, results, validateAllProperties: true);
 
             // Assert
-            Assert.True(isValid, "ProductViewModel should be valid");
+            Assert.True(isValid, "ProductViewModel Price should be valid");
             Assert.Empty(results);
-        }
-
-
-
-        [Fact]
-        public void CreateProductCheckName()
-        {
-            // Arrange
-            var producViewModel = new ProductViewModel
-            {
-                Id = 6,
-                Name = "",
-                Description = "TestDescription",
-                Details = "TestDetails",
-                Price = "",
-                Stock = ""
-            };
-
-            var productService = Mock.Of<IProductService>();
-            //Mock.Get(productService).Setup(m => m.CheckProductModelErrors(producViewModel));
-
-            var languageService = Mock.Of<ILanguageService>();
-            var productController = new ProductController(productService, languageService);
-
-            // Act
-            IActionResult result = productController.Create(producViewModel);
-            //IActionResult result = productController.Create(producViewModel);
-
-            // Assert
-            Assert.Equal(1, 1);
-
-            productController.DeleteProduct(6);
         }
     }
 }
