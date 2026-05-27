@@ -10,17 +10,17 @@ namespace P3AddNewFunctionalityDotNetCore.Models.ViewModels
         [BindNever]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "MissingName")]
+        [Required(ErrorMessageResourceType = typeof(Resources.Models.Services.ProductService), ErrorMessageResourceName = "MissingName")]
         public string Name { get; set; }
 
         public string Description { get; set; }
 
         public string Details { get; set; }
 
-        [Required(ErrorMessage = "MissingQuantity")]
+        [Required(ErrorMessageResourceType = typeof(Resources.Models.Services.ProductService), ErrorMessageResourceName = "MissingStock")]
         public string Stock { get; set; }
 
-        [Required(ErrorMessage = "MissingPrice")]
+        [Required(ErrorMessageResourceType = typeof(Resources.Models.Services.ProductService), ErrorMessageResourceName = "MissingPrice")]
         public string Price { get; set; }
 
 
@@ -38,13 +38,13 @@ namespace P3AddNewFunctionalityDotNetCore.Models.ViewModels
                     out decimal parsedPrice))
             {
                 yield return new ValidationResult(
-                    "PriceNotANumber",
+                    Resources.Models.Services.ProductService.PriceNotANumber,
                     new[] { nameof(Price) });
             }
             else if (parsedPrice <= 0)
             {
                 yield return new ValidationResult(
-                    "PriceNotGreaterThanZero",
+                    Resources.Models.Services.ProductService.PriceNotGreaterThanZero,
                     new[] { nameof(Price) });
             }
 
@@ -55,13 +55,13 @@ namespace P3AddNewFunctionalityDotNetCore.Models.ViewModels
                     out int parsedStock))
             {
                 yield return new ValidationResult(
-                    "StockNotAnInteger",
+                    Resources.Models.Services.ProductService.StockNotAnInteger,
                     new[] { nameof(Stock) });
             }
             else if (parsedStock <= 0)
             {
                 yield return new ValidationResult(
-                    "StockNotGreaterThanZero",
+                    Resources.Models.Services.ProductService.StockNotGreaterThanZero,
                     new[] { nameof(Stock) });
             }
         }
