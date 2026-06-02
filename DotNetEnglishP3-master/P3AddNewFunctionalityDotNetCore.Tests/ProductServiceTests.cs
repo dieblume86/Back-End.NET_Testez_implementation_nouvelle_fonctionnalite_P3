@@ -195,7 +195,6 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             Assert.Empty(stockErrors);
         }
 
-
         /// <summary>
         /// Get all validation errors for a specific property of the ProductViewModel, including both data annotations and custom validation logic.
         /// </summary>
@@ -221,105 +220,22 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             return targetErrors;
         }
 
-        [Fact]
-        public void CreateProductTest()
-        {
-            // Trouve un appsettings.json dans l'arborescence (jusqu'à 6 niveaux)
-            string FindAppSettings()
-            {
-                var dir = Directory.GetCurrentDirectory();
-                for (int i = 0; i < 6 && dir != null; i++)
-                {
-                    var candidate = Path.Combine(dir, "appsettings.json");
-                    if (File.Exists(candidate))
-                        return candidate;
-                    var parent = Directory.GetParent(dir);
-                    dir = parent?.FullName;
-                }
-                return null;
-            }
 
-            var appSettingsPath = FindAppSettings();
-
-            var configBuilder = new ConfigurationBuilder();
-            if (appSettingsPath != null)
-            {
-                configBuilder.AddJsonFile(appSettingsPath, optional: false, reloadOnChange: false);
-            }
-            // fallback to environment variables
-            configBuilder.AddEnvironmentVariables();
-            var configuration = configBuilder.Build();
-
-            var connectionString = configuration.GetConnectionString("P3Referential")
-                                   ?? Environment.GetEnvironmentVariable("ConnectionStrings__P3Referential");
-
-            Assert.False(string.IsNullOrWhiteSpace(connectionString), "Connection string 'P3Referential' introuvable. Ajoute-la dans appsettings.json ou en variable d'environnement.");
-
-            // Configure le DbContextOptions en pointant sur la base réelle
-            var options = new DbContextOptionsBuilder<P3Referential>()
-                .UseSqlServer(connectionString)
-                .Options;
-
-            // Crée le contexte (le constructeur exige IConfiguration)
-            var context = new P3Referential(options, configuration);
-
-            // Assure que la base est accessible (ne pas créer de schéma si non désiré)
-            // context.Database.EnsureCreated(); // <-- active si nécessaire
-
-            // Instancie repository / service réels
-            var productRepository = new ProductRepository(context);
-            var cart = new Cart();
-            var orderRepositoryMock = Mock.Of<IOrderRepository>();
-            var localizerMock = Mock.Of<IStringLocalizer<ProductService>>();
-
-            var productService = new ProductService(cart, productRepository, orderRepositoryMock, localizerMock);
-
-            var languageServiceMock = Mock.Of<ILanguageService>();
-            var productController = new ProductController(productService, languageServiceMock);
-
-            // Crée un produit de test unique (nom avec GUID pour éviter collisions)
-            var uniqueName = $"TestProduct_{Guid.NewGuid():N}";
-            var productVm = new ProductViewModel
-            {
-                Name = uniqueName,
-                Price = "12,34",
-                Stock = "5",
-                Description = "Description de test",
-                Details = "Détails de test"
-            };
-
-            // Act: appeler l'action Create du controller (POST)
-            var result = productController.Create(productVm);
-
-            // Assert: vérifie que le produit a bien été ajouté en base
-            var added = context.Product.FirstOrDefault(p => p.Name == uniqueName);
-            Assert.NotNull(added);
-
-            try
-            {
-                // Cleanup : supprimer le produit ajouté pour ne pas polluer la base
-                if (added != null)
-                {
-                    context.Product.Remove(added);
-                    context.SaveChanges();
-                }
-            }
-            finally
-            {
-                // dispose context si nécessaire
-                (context as IDisposable)?.Dispose();
-            }
-        }
-
+        /// <summary>
+        /// Test the Create and DeleteProduct methods of the ProductController to ensure that a product can be created and then deleted successfully in the database. 
+        /// This test uses the real database connection string from appsettings.json, so it will interact with the actual database. 
+        /// It also ensures that any created product is cleaned up after the test to avoid polluting the database. 
+        /// Note: This test assumes that the database is properly set up and that the connection string is correct. It may require additional configuration or permissions to run successfully.
+        /// </summary>
         [Fact]
         public void ProductController_Create_Delete_Product()
         {
-            // Arrange
             var originalCulture = CultureInfo.CurrentCulture;
             var originalUiCulture = CultureInfo.CurrentUICulture;
 
             try
             {
+                // Arrange
                 var testCulture = new CultureInfo("en-EN");
                 CultureInfo.CurrentCulture = testCulture;
                 CultureInfo.CurrentUICulture = testCulture;
@@ -365,29 +281,31 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
                     Details = "Détails de test"
                 };
 
-                // Act
-                productController.Create(product);
-
-                var added = context.Product.FirstOrDefault(p => p.Name == uniqueName);
-                
-                productController.DeleteProduct(added.Id);
-                added = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+                Product newProduct = null;
 
                 try
                 {
+                    // Act
+                    productController.Create(product);
+
+                    newProduct = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+
+                    productController.DeleteProduct(newProduct.Id);
+                    newProduct = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+
                     // Assert
-                    Assert.Null(added);
+                    Assert.Null(newProduct);
                 }
-                finally // Cleanup : if needed deletes the product added to avoid polluting the database if needed
+                finally // Cleanup : if needed deletes the newProduct to avoid polluting the database if needed
                 {
-                    if (added != null)
+                    if (newProduct != null)
                     {
-                        context.Product.Remove(added);
+                        context.Product.Remove(newProduct);
                         context.SaveChanges();
                     }
                 }
             }
-            finally 
+            finally
             {
                 CultureInfo.CurrentCulture = originalCulture;
                 CultureInfo.CurrentUICulture = originalUiCulture;
