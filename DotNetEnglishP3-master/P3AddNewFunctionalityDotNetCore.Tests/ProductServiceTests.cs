@@ -1,14 +1,21 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
 using Moq;
 using P3AddNewFunctionalityDotNetCore.Controllers;
+using P3AddNewFunctionalityDotNetCore.Data;
 using P3AddNewFunctionalityDotNetCore.Models;
 using P3AddNewFunctionalityDotNetCore.Models.Entities;
 using P3AddNewFunctionalityDotNetCore.Models.Repositories;
 using P3AddNewFunctionalityDotNetCore.Models.Services;
 using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using Xunit;
 
@@ -29,13 +36,14 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         {
             // Arrange
             var product = new ProductViewModel { Name = "" };
+            var localizedMissingName = Resources.Models.Services.ProductService.MissingName;
 
             // Act
             var nameErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Name));
 
             // Assert
             Assert.NotEmpty(nameErrors);
-            Assert.Equal("MissingName", nameErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingName, nameErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Name_IsValid()
         {
@@ -64,37 +72,40 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         {
             // Arrange
             var product = new ProductViewModel { Price = "" };
+            var localizedMissingPrice = Resources.Models.Services.ProductService.MissingPrice;
 
             // Act
             var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.NotEmpty(priceErrors);
-            Assert.Equal("MissingPrice", priceErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingPrice, priceErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Price_IsNotValid_NotDecimal()
         {
             // Arrange
             var product = new ProductViewModel { Price = "Test" };
+            var localizedMissingPriceNotANumber = Resources.Models.Services.ProductService.PriceNotANumber;
 
             // Act
             var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.NotEmpty(priceErrors);
-            Assert.Equal("PriceNotANumber", priceErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingPriceNotANumber, priceErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Price_IsNotValid_NotGreaterThanZero()
         {
             // Arrange
             var product = new ProductViewModel { Price = "-9.99" };
+            var localizedMissingPriceNotGreaterThanZero = Resources.Models.Services.ProductService.PriceNotGreaterThanZero;
 
             // Act
             var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.NotEmpty(priceErrors);
-            Assert.Equal("PriceNotGreaterThanZero", priceErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingPriceNotGreaterThanZero, priceErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Price_IsValid()
         {
@@ -124,49 +135,53 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         {
             // Arrange
             var product = new ProductViewModel { Stock = "" };
+            var localizedMissingMissingStock = Resources.Models.Services.ProductService.MissingStock;
 
             // Act
             var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
-            Assert.Equal("MissingQuantity", stockErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingMissingStock, stockErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Stock_IsNotValid_NotInteger_BecauseString()
         {
             // Arrange
             var product = new ProductViewModel { Stock = "Test" };
+            var localizedMissingStockNotAnInteger = Resources.Models.Services.ProductService.StockNotAnInteger;
 
             // Act
             var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
-            Assert.Equal("StockNotAnInteger", stockErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingStockNotAnInteger, stockErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Stock_IsNotValid_NotInteger_BecauseDecimal()
         {
             // Arrange
             var product = new ProductViewModel { Stock = "9.99" };
+            var localizedMissingStockNotAnInteger = Resources.Models.Services.ProductService.StockNotAnInteger;
 
             // Act
             var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
-            Assert.Equal("StockNotAnInteger", stockErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingStockNotAnInteger, stockErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Stock_IsNotValid_NotGreaterThanZero()
         {
             // Arrange
             var product = new ProductViewModel { Stock = "-10" };
+            var localizedMissingStockNotGreaterThanZero = Resources.Models.Services.ProductService.StockNotGreaterThanZero;
 
             // Act
             var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
-            Assert.Equal("StockNotGreaterThanZero", stockErrors[0].ErrorMessage);
+            Assert.Equal(localizedMissingStockNotGreaterThanZero, stockErrors[0].ErrorMessage);
         }
         private void ProductViewModel_Stock_IsValid()
         {
