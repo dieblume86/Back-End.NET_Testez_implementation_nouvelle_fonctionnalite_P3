@@ -220,5 +220,178 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
             return targetErrors;
         }
+
+        [Fact]
+        public void CreateProductTest()
+        {
+            // Trouve un appsettings.json dans l'arborescence (jusqu'à 6 niveaux)
+            string FindAppSettings()
+            {
+                var dir = Directory.GetCurrentDirectory();
+                for (int i = 0; i < 6 && dir != null; i++)
+                {
+                    var candidate = Path.Combine(dir, "appsettings.json");
+                    if (File.Exists(candidate))
+                        return candidate;
+                    var parent = Directory.GetParent(dir);
+                    dir = parent?.FullName;
+                }
+                return null;
+            }
+
+            var appSettingsPath = FindAppSettings();
+
+            var configBuilder = new ConfigurationBuilder();
+            if (appSettingsPath != null)
+            {
+                configBuilder.AddJsonFile(appSettingsPath, optional: false, reloadOnChange: false);
+            }
+            // fallback to environment variables
+            configBuilder.AddEnvironmentVariables();
+            var configuration = configBuilder.Build();
+
+            var connectionString = configuration.GetConnectionString("P3Referential")
+                                   ?? Environment.GetEnvironmentVariable("ConnectionStrings__P3Referential");
+
+            Assert.False(string.IsNullOrWhiteSpace(connectionString), "Connection string 'P3Referential' introuvable. Ajoute-la dans appsettings.json ou en variable d'environnement.");
+
+            // Configure le DbContextOptions en pointant sur la base réelle
+            var options = new DbContextOptionsBuilder<P3Referential>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            // Crée le contexte (le constructeur exige IConfiguration)
+            var context = new P3Referential(options, configuration);
+
+            // Assure que la base est accessible (ne pas créer de schéma si non désiré)
+            // context.Database.EnsureCreated(); // <-- active si nécessaire
+
+            // Instancie repository / service réels
+            var productRepository = new ProductRepository(context);
+            var cart = new Cart();
+            var orderRepositoryMock = Mock.Of<IOrderRepository>();
+            var localizerMock = Mock.Of<IStringLocalizer<ProductService>>();
+
+            var productService = new ProductService(cart, productRepository, orderRepositoryMock, localizerMock);
+
+            var languageServiceMock = Mock.Of<ILanguageService>();
+            var productController = new ProductController(productService, languageServiceMock);
+
+            // Crée un produit de test unique (nom avec GUID pour éviter collisions)
+            var uniqueName = $"TestProduct_{Guid.NewGuid():N}";
+            var productVm = new ProductViewModel
+            {
+                Name = uniqueName,
+                Price = "12,34",
+                Stock = "5",
+                Description = "Description de test",
+                Details = "Détails de test"
+            };
+
+            // Act: appeler l'action Create du controller (POST)
+            var result = productController.Create(productVm);
+
+            // Assert: vérifie que le produit a bien été ajouté en base
+            var added = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+            Assert.NotNull(added);
+
+            try
+            {
+                // Cleanup : supprimer le produit ajouté pour ne pas polluer la base
+                if (added != null)
+                {
+                    context.Product.Remove(added);
+                    context.SaveChanges();
+                }
+            }
+            finally
+            {
+                // dispose context si nécessaire
+                (context as IDisposable)?.Dispose();
+            }
+        }
+
+        [Fact]
+        public void ProductController_Create_Delete_Product()
+        {
+            // Arrange
+            var originalCulture = CultureInfo.CurrentCulture;
+            var originalUiCulture = CultureInfo.CurrentUICulture;
+
+            try
+            {
+                var testCulture = new CultureInfo("en-EN");
+                CultureInfo.CurrentCulture = testCulture;
+                CultureInfo.CurrentUICulture = testCulture;
+
+                var appSettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+
+                var configBuilder = new ConfigurationBuilder();
+                configBuilder.AddJsonFile(appSettingsPath);
+
+                // fallback to environment variables
+                var configuration = configBuilder.Build();
+
+                var connectionString = configuration.GetConnectionString("P3Referential");
+
+                Assert.False(string.IsNullOrWhiteSpace(connectionString), "Connection string 'P3Referential' not found.");
+
+                // Configure DbContextOptions to point to the real database
+                var options = new DbContextOptionsBuilder<P3Referential>().UseSqlServer(connectionString).Options;
+
+                // Create context (constructor requires IConfiguration)
+                var context = new P3Referential(options, configuration);
+
+
+                // Instantiate repository / real service
+                var productRepository = new ProductRepository(context);
+                var cart = new Cart();
+                var orderRepositoryMock = Mock.Of<IOrderRepository>();
+                var localizerMock = Mock.Of<IStringLocalizer<ProductService>>();
+
+                var productService = new ProductService(cart, productRepository, orderRepositoryMock, localizerMock);
+
+                var languageServiceMock = Mock.Of<ILanguageService>();
+                var productController = new ProductController(productService, languageServiceMock);
+
+
+                var uniqueName = $"TestProduct_{Guid.NewGuid():N}";
+                var product = new ProductViewModel
+                {
+                    Name = uniqueName,
+                    Price = "12.34",
+                    Stock = "5",
+                    Description = "Description de test",
+                    Details = "Détails de test"
+                };
+
+                // Act
+                productController.Create(product);
+
+                var added = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+                
+                productController.DeleteProduct(added.Id);
+                added = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+
+                try
+                {
+                    // Assert
+                    Assert.Null(added);
+                }
+                finally // Cleanup : if needed deletes the product added to avoid polluting the database if needed
+                {
+                    if (added != null)
+                    {
+                        context.Product.Remove(added);
+                        context.SaveChanges();
+                    }
+                }
+            }
+            finally 
+            {
+                CultureInfo.CurrentCulture = originalCulture;
+                CultureInfo.CurrentUICulture = originalUiCulture;
+            }
+        }
     }
 }
