@@ -23,14 +23,15 @@ namespace P3AddNewFunctionalityDotNetCore.Models.ViewModels
         [Required(ErrorMessageResourceType = typeof(Resources.Models.Services.ProductService), ErrorMessageResourceName = "MissingPrice")]
         public string Price { get; set; }
 
-
         /// <summary>
         /// Validate if Price is a number and greater than zero, and if Stock is an integer and greater than zero.
         /// </summary>
-        /// <param name="validationContext"></param>
-        /// <returns></returns>
+        /// <param name="validationContext">The context information about the validation operation.</param>
+        /// <returns>A collection of validation results</returns>
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
+            Price = Price.Replace(",", ".").Trim();
+
             if (!decimal.TryParse(
                     Price,
                     NumberStyles.Any,

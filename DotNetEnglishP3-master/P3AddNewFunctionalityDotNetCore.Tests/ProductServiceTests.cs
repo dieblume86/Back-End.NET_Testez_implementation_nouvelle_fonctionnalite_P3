@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using Moq;
@@ -39,7 +37,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingName = Resources.Models.Services.ProductService.MissingName;
 
             // Act
-            var nameErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Name));
+            var nameErrors = GetTargetPropertyErrors(product,nameof(ProductViewModel.Name));
 
             // Assert
             Assert.NotEmpty(nameErrors);
@@ -51,7 +49,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var product = new ProductViewModel { Name = "ProduitTest" };
 
             // Act
-            var nameErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Name));
+            var nameErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Name));
 
             // Assert
             Assert.Empty(nameErrors);
@@ -75,7 +73,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingPrice = Resources.Models.Services.ProductService.MissingPrice;
 
             // Act
-            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
+            var priceErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.NotEmpty(priceErrors);
@@ -88,7 +86,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingPriceNotANumber = Resources.Models.Services.ProductService.PriceNotANumber;
 
             // Act
-            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
+            var priceErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.NotEmpty(priceErrors);
@@ -101,7 +99,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingPriceNotGreaterThanZero = Resources.Models.Services.ProductService.PriceNotGreaterThanZero;
 
             // Act
-            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
+            var priceErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.NotEmpty(priceErrors);
@@ -110,10 +108,10 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
         private void ProductViewModel_Price_IsValid()
         {
             // Arrange
-            var product = new ProductViewModel { Price = "9.99" };
+            var product = new ProductViewModel { Price = "9,99" };
 
             // Act
-            var priceErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Price));
+            var priceErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Price));
 
             // Assert
             Assert.Empty(priceErrors);
@@ -138,7 +136,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingMissingStock = Resources.Models.Services.ProductService.MissingStock;
 
             // Act
-            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+            var stockErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
@@ -151,7 +149,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingStockNotAnInteger = Resources.Models.Services.ProductService.StockNotAnInteger;
 
             // Act
-            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+            var stockErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
@@ -164,7 +162,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingStockNotAnInteger = Resources.Models.Services.ProductService.StockNotAnInteger;
 
             // Act
-            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+            var stockErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
@@ -177,7 +175,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingStockNotGreaterThanZero = Resources.Models.Services.ProductService.StockNotGreaterThanZero;
 
             // Act
-            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+            var stockErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.NotEmpty(stockErrors);
@@ -189,35 +187,26 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var product = new ProductViewModel { Stock = "10" };
 
             // Act
-            var stockErrors = GetAllPropertiesErrors(product, nameof(ProductViewModel.Stock));
+            var stockErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Stock));
 
             // Assert
             Assert.Empty(stockErrors);
         }
 
         /// <summary>
-        /// Get all validation errors for a specific property of the ProductViewModel, including both data annotations and custom validation logic.
+        /// Get all validation errors for a specific property of the ProductViewModel 
+        /// by using the CheckProductValidationResult method of the ProductService, 
+        /// which includes both data annotations and custom validation logic.
         /// </summary>
         /// <param name="product">The product view model to validate.</param>
         /// <param name="targetProperty">The name of the property to get validation errors for.</param>
         /// <returns>A list of validation results for the specified property.</returns>
-        private List<ValidationResult> GetAllPropertiesErrors(ProductViewModel product, string targetProperty)
+        private List<ValidationResult> GetTargetPropertyErrors(ProductViewModel product, string targetProperty)
         {
-            var context = new ValidationContext(product);
-            var results = new List<ValidationResult>();
+            var productService = new ProductService(null, null, null, null);
 
-            Validator.TryValidateObject(product, context, results);
-
-            var customResults = product.Validate(context).ToList();
-
-            foreach (var customResult in customResults)
-            {
-                results.Add(customResult);
-            }
-
-            var targetErrors = results.Where(r => r.MemberNames != null && r.MemberNames.Contains(targetProperty)).ToList();
-
-            return targetErrors;
+            return productService.CheckProductValidationResult(product)
+                .Where(r => r.MemberNames != null && r.MemberNames.Contains(targetProperty)).ToList();
         }
 
 

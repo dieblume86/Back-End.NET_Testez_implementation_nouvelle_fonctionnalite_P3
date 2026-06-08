@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -90,46 +91,23 @@ namespace P3AddNewFunctionalityDotNetCore.Models.Services
             }
         }
 
-        // TODO this is an example method, remove it and perform model validation using data annotations
         public List<string> CheckProductModelErrors(ProductViewModel product)
         {
-            List<string> modelErrors = new List<string>();
-            if (product.Name == null || string.IsNullOrWhiteSpace(product.Name))
-            {
-                modelErrors.Add(_localizer["MissingName"]);
-            }
+            var modelErrors = new List<string>();
 
-            if (product.Price == null || string.IsNullOrWhiteSpace(product.Price))
-            {
-                modelErrors.Add(_localizer["MissingPrice"]);
-            }
-
-            if (!Double.TryParse(product.Price, out double pc))
-            {
-                modelErrors.Add(_localizer["PriceNotANumber"]);
-            }
-            else
-            {
-                if (pc <= 0)
-                    modelErrors.Add(_localizer["PriceNotGreaterThanZero"]);
-            }
-
-            if (product.Stock == null || string.IsNullOrWhiteSpace(product.Stock))
-            {
-                modelErrors.Add(_localizer["MissingQuantity"]);
-            }
-
-            if (!int.TryParse(product.Stock, out int qt))
-            {
-                modelErrors.Add(_localizer["StockNotAnInteger"]);
-            }
-            else
-            {
-                if (qt <= 0)
-                    modelErrors.Add(_localizer["StockNotGreaterThanZero"]);
-            }
+            CheckProductValidationResult(product).ForEach(vr => modelErrors.Add(vr.ErrorMessage));
 
             return modelErrors;
+        }
+        public List<ValidationResult> CheckProductValidationResult(ProductViewModel product)
+        {
+            var context = new ValidationContext(product);
+            var results = new List<ValidationResult>();
+
+            Validator.TryValidateObject(product, context, results);
+            product.Validate(new ValidationContext(product)).ToList().ForEach(vr => results.Add(vr));
+
+            return results;
         }
 
         public void SaveProduct(ProductViewModel product)
@@ -140,10 +118,12 @@ namespace P3AddNewFunctionalityDotNetCore.Models.Services
 
         private static Product MapToProductEntity(ProductViewModel product)
         {
+            product.Price = product.Price.Replace(",", ".").Trim();
+
             Product productEntity = new Product
             {
                 Name = product.Name,
-                Price = double.Parse(product.Price),
+                Price = double.Parse(product.Price, NumberStyles.Any, CultureInfo.InvariantCulture),
                 Quantity = Int32.Parse(product.Stock),
                 Description = product.Description,
                 Details = product.Details
@@ -153,9 +133,6 @@ namespace P3AddNewFunctionalityDotNetCore.Models.Services
 
         public void DeleteProduct(int id)
         {
-            // TODO what happens if a product has been added to a cart and has been later removed from the inventory ?
-            // delete the product form the cart by using the specific method
-            // => the choice is up to the student
             _cart.RemoveLine(GetProductById(id));
 
             _productRepository.DeleteProduct(id);
