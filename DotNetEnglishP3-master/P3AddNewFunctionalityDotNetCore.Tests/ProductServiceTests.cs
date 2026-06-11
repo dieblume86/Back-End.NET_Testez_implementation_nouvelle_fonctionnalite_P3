@@ -12,7 +12,6 @@ using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -37,7 +36,7 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
             var localizedMissingName = Resources.Models.Services.ProductService.MissingName;
 
             // Act
-            var nameErrors = GetTargetPropertyErrors(product,nameof(ProductViewModel.Name));
+            var nameErrors = GetTargetPropertyErrors(product, nameof(ProductViewModel.Name));
 
             // Assert
             Assert.NotEmpty(nameErrors);
@@ -211,94 +210,140 @@ namespace P3AddNewFunctionalityDotNetCore.Tests
 
 
         /// <summary>
-        /// Test the Create and DeleteProduct methods of the ProductController to ensure that a product can be created and then deleted successfully in the database. 
-        /// This test uses the real database connection string from appsettings.json, so it will interact with the actual database. 
-        /// It also ensures that any created product is cleaned up after the test to avoid polluting the database. 
-        /// Note: This test assumes that the database is properly set up and that the connection string is correct. It may require additional configuration or permissions to run successfully.
+        /// Test the Create method of the ProductController to ensure that a new product can be created successfully in the database when valid data is provided, and that the product is properly cleaned up after the test to avoid polluting the database with test data.
         /// </summary>
         [Fact]
-        public void ProductController_Create_Delete_Product()
+        public void ProductController_Create_Product()
         {
-            var originalCulture = CultureInfo.CurrentCulture;
-            var originalUiCulture = CultureInfo.CurrentUICulture;
+            // Arrange
+            var context = GetDBContext();
+            var productService = GetProductService(context);
+
+            var languageServiceMock = Mock.Of<ILanguageService>();
+            var productController = new ProductController(productService, languageServiceMock);
+
+            var uniqueName = $"TestProduct_{Guid.NewGuid():N}";
+            var product = new ProductViewModel
+            {
+                Name = uniqueName,
+                Price = "12.34",
+                Stock = "5",
+                Description = "Description de test",
+                Details = "Détails de test"
+            };
+
+            Product newProduct = null;
 
             try
             {
-                // Arrange
-                var testCulture = new CultureInfo("en-EN");
-                CultureInfo.CurrentCulture = testCulture;
-                CultureInfo.CurrentUICulture = testCulture;
+                // Act
+                productController.Create(product);
 
-                var appSettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+                newProduct = context.Product.FirstOrDefault(p => p.Name == uniqueName);
 
-                var configBuilder = new ConfigurationBuilder();
-                configBuilder.AddJsonFile(appSettingsPath);
-
-                // fallback to environment variables
-                var configuration = configBuilder.Build();
-
-                var connectionString = configuration.GetConnectionString("P3Referential");
-
-                Assert.False(string.IsNullOrWhiteSpace(connectionString), "Connection string 'P3Referential' not found.");
-
-                // Configure DbContextOptions to point to the real database
-                var options = new DbContextOptionsBuilder<P3Referential>().UseSqlServer(connectionString).Options;
-
-                // Create context (constructor requires IConfiguration)
-                var context = new P3Referential(options, configuration);
-
-
-                // Instantiate repository / real service
-                var productRepository = new ProductRepository(context);
-                var cart = new Cart();
-                var orderRepositoryMock = Mock.Of<IOrderRepository>();
-                var localizerMock = Mock.Of<IStringLocalizer<ProductService>>();
-
-                var productService = new ProductService(cart, productRepository, orderRepositoryMock, localizerMock);
-
-                var languageServiceMock = Mock.Of<ILanguageService>();
-                var productController = new ProductController(productService, languageServiceMock);
-
-
-                var uniqueName = $"TestProduct_{Guid.NewGuid():N}";
-                var product = new ProductViewModel
-                {
-                    Name = uniqueName,
-                    Price = "12.34",
-                    Stock = "5",
-                    Description = "Description de test",
-                    Details = "Détails de test"
-                };
-
-                Product newProduct = null;
-
-                try
-                {
-                    // Act
-                    productController.Create(product);
-
-                    newProduct = context.Product.FirstOrDefault(p => p.Name == uniqueName);
-
-                    productController.DeleteProduct(newProduct.Id);
-                    newProduct = context.Product.FirstOrDefault(p => p.Name == uniqueName);
-
-                    // Assert
-                    Assert.Null(newProduct);
-                }
-                finally // Cleanup : if needed deletes the newProduct to avoid polluting the database if needed
-                {
-                    if (newProduct != null)
-                    {
-                        context.Product.Remove(newProduct);
-                        context.SaveChanges();
-                    }
-                }
+                // Assert
+                Assert.NotNull(newProduct);
             }
-            finally
+            finally // Cleanup
             {
-                CultureInfo.CurrentCulture = originalCulture;
-                CultureInfo.CurrentUICulture = originalUiCulture;
+                if (newProduct != null)
+                {
+                    context.Product.Remove(newProduct);
+                    context.SaveChanges();
+                }
             }
+        }
+
+        /// <summary>
+        /// Test the DeleteProduct method of the ProductController to ensure that a product can be deleted successfully from the database.
+        /// </summary>
+        [Fact]
+        public void ProductController_Delete_Product()
+        {
+            // Arrange
+            var context = GetDBContext();
+            var productService = GetProductService(context);
+
+            var languageServiceMock = Mock.Of<ILanguageService>();
+            var productController = new ProductController(productService, languageServiceMock);
+
+            var uniqueName = $"TestProduct_{Guid.NewGuid():N}";
+            var product = new Product
+            {
+                Name = uniqueName,
+                Price = 10.5,
+                Quantity = 3,
+                Description = "Description de test",
+                Details = "Détails de test"
+            };
+
+            Product productTarget = null;
+
+            try
+            {
+                // Act
+                context.Product.Add(product);
+                context.SaveChanges();
+
+                productTarget = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+
+                productController.DeleteProduct(productTarget.Id);
+                productTarget = context.Product.FirstOrDefault(p => p.Name == uniqueName);
+
+                // Assert
+                Assert.Null(productTarget);
+            }
+            finally // Cleanup : if needed deletes the productTarget to avoid polluting the database if needed
+            {
+                if (productTarget != null)
+                {
+                    context.Product.Remove(productTarget);
+                    context.SaveChanges();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Retrieve the database context using the connection string from appsettings.json, which allows the tests to interact with the actual database.
+        /// Note: This test assumes that the database is properly set up and that the connection string is correct. It may require additional configuration or permissions to run successfully.
+        /// </summary>
+        /// <returns>The database context for the P3Referential database.</returns>
+        private P3Referential GetDBContext()
+        {
+            var appSettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.AddJsonFile(appSettingsPath);
+
+            // fallback to environment variables
+            var configuration = configBuilder.Build();
+
+            var connectionString = configuration.GetConnectionString("P3Referential");
+
+            Assert.False(string.IsNullOrWhiteSpace(connectionString), "Connection string 'P3Referential' not found.");
+
+            // Configure DbContextOptions to point to the real database
+            var options = new DbContextOptionsBuilder<P3Referential>().UseSqlServer(connectionString).Options;
+
+            // Create context (constructor requires IConfiguration)
+            var context = new P3Referential(options, configuration);
+
+            return context;
+        }
+
+        /// <summary>
+        /// Retrieve an instance of the ProductService using the provided database context,
+        /// </summary>
+        /// <param name="context">The database context to be used by the ProductService.</param>
+        /// <returns>An instance of the ProductService.</returns>
+        private ProductService GetProductService(P3Referential context)
+        {
+            var productRepository = new ProductRepository(context);
+            var cart = new Cart();
+            var orderRepositoryMock = Mock.Of<IOrderRepository>();
+            var localizerMock = Mock.Of<IStringLocalizer<ProductService>>();
+
+            return new ProductService(cart, productRepository, orderRepositoryMock, localizerMock);
         }
     }
 }

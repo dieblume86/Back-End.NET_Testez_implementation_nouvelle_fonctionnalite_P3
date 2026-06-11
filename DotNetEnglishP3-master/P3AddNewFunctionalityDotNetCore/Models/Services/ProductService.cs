@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Microsoft.Extensions.Localization;
+using P3AddNewFunctionalityDotNetCore.Models.Entities;
+using P3AddNewFunctionalityDotNetCore.Models.Repositories;
+using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Localization;
-using P3AddNewFunctionalityDotNetCore.Models.Entities;
-using P3AddNewFunctionalityDotNetCore.Models.Repositories;
-using P3AddNewFunctionalityDotNetCore.Models.ViewModels;
 
 namespace P3AddNewFunctionalityDotNetCore.Models.Services
 {
@@ -104,8 +104,7 @@ namespace P3AddNewFunctionalityDotNetCore.Models.Services
             var context = new ValidationContext(product);
             var results = new List<ValidationResult>();
 
-            Validator.TryValidateObject(product, context, results);
-            product.Validate(new ValidationContext(product)).ToList().ForEach(vr => results.Add(vr));
+            Validator.TryValidateObject(product, context, results, true);
 
             return results;
         }
