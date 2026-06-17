@@ -9,7 +9,7 @@ namespace P3AddNewFunctionalityDotNetCore.Attributes
         {
             var value = source as string;
 
-            value = value.Replace(',', '.');
+            value = value.Replace(',', '.').Trim();
 
             if (!int.TryParse(
                     value,
