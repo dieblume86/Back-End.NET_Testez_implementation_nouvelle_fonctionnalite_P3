@@ -30,9 +30,18 @@ Il existe des versions différentes de MSSQL (veuillez utiliser MSSQL pour ce pr
 
 Les chaînes de connexion définies dans le projet sont configurées pour MSSQL Server Standard 2019. L’installation n’a pas créé de nom d’instance, le serveur est donc simplement désigné par « . », qui désigne l’instance par défaut de MSSQL Server fonctionnant sur la machine actuelle. Pendant l’installation, c’est l’utilisateur intégré de Windows qui est configuré dans le serveur MSSQL par défaut.
 
+Il est possible de devoir mettre localhost au lieu du « . ». Ainsi que d'ajouter « TrustServerCertificate=True ».
+
+    "ConnectionStrings": 
+    {
+        "P3Referential": "Server=localhost;Database=P3Referential-2f561d3b-493f-46fd-83c9-6e2643e7bd0a;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true",
+        "P3Identity": "Server=localhost;Database=Identity;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
+    }
+
 Si vous avez installé MSSQL Express, la valeur à utiliser pour Server est très probablement .\SQLEXPRESS. Donc votre chaîne de connexion P3Referential serait :
 
     "P3Referential": "Server=.\SQLEXPRESS;Database=P3Referential-2f561d3b-493f-46fd-83c9-6e2643e7bd0a;Trusted_Connection=True;MultipleActiveResultSets=true"
   
 Si vous avez des difficultés à vous connecter, essayez d’abord de vous connecter à l’aide de Microsoft SQL Server Management Studio (assurez-vous que le type d’authentification est « Authentification Windows »), ou consultez le site https://sqlserver-help.com/2011/06/19/help-whats-my-sql-server-name/.
-Si le problème persiste, demandez de l’aide à votre mentor.
+
+
